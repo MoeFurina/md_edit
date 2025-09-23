@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown编辑器</title>
+    <link rel="stylesheet" href="/static/css/editor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* 深色模式CSS */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #dee2e6;
+            --toolbar-bg: #ffffff;
+            --button-hover: #f0f0f0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3a3a3a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: #4a4a4a;
+            --toolbar-bg: #2d2d2d;
+            --button-hover: #3a3a3a;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <!-- 可折叠侧边栏 -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>工具面板</h3>
+                <button id="sidebarClose" title="关闭">✕</button>
+            </div>
+            <div class="sidebar-content">
+                <!-- 博客框架选择 -->
+                <div class="sidebar-section">
+                    <h4>博客框架</h4>
+                    <div class="form-group">
+                        <select id="blogFramework" class="blog-framework-select">
+                            <option value="">请选择框架</option>
+                            <option value="astro">Astro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 元数据编辑表单 (默认隐藏) -->
+                <div id="metadataForm" class="metadata-form" style="display: none;">
+                    <h4>元数据设置</h4>
+                    <div class="form-group">
+                        <label for="metaTitle">标题:</label>
+                        <input type="text" id="metaTitle" placeholder="输入文章标题">
+                    </div>
+                    <div class="form-group">
+                        <label for="metaPublished">发布日期:</label>
+                        <input type="date" id="metaPublished">
+                    </div>
+                    <div class="form-group">
+                        <label for="metaDescription">简介:</label>
+                        <input type="text" id="metaDescription" placeholder="输入文章简介">
+                    </div>
+                    <div class="form-group">
+                        <label for="metaImage">封面图片:</label>
+                        <input type="text" id="metaImage" placeholder="点击选择封面图片" readonly>
+                    </div>
+
+                    <!-- 图片选择区域 (默认隐藏) -->
+                    <div id="imageSelectionArea" class="image-selection-area" style="display: none;">
+                        <h5>选择图片</h5>
+                        <div id="userImagesList" class="user-images-list">
+                            <!-- 用户上传的图片将在这里显示 -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>标签:</label>
+                        <div id="tagsContainer" class="tags-container">
+                            <!-- 标签输入框将在这里动态添加 -->
+                        </div>
+                        <button type="button" id="addTagBtn" class="add-tag-btn">+ 添加标签</button>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h4>图片设置</h4>
+                    <div class="form-group">
+                        <label for="sidebarImagePath">图片路径:</label>
+                        <input type="text" id="sidebarImagePath" value="/image" placeholder="如 /image/123/222/">
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <h4>编辑统计</h4>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-label">字符数:</span>
+                            <span id="charCount" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">词数:</span>
+                            <span id="wordCount" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容区 -->
+        <div class="main-content">
+            <!-- 工具栏 -->
+            <div class="toolbar">
+            <div class="toolbar-group">
+                <select id="headingSelect" title="标题">
+                    <option value="">标题</option>
+                    <option value="h1">H1</option>
+                    <option value="h2">H2</option>
+                    <option value="h3">H3</option>
+                    <option value="h4">H4</option>
+                    <option value="h5">H5</option>
+                    <option value="h6">H6</option>
+                </select>
+
+                <select id="fontSizeSelect" title="字体大小">
+                    <option value="12px">12px</option>
+                    <option value="14px">14px</option>
+                    <option value="16px" selected>16px</option>
+                    <option value="18px">18px</option>
+                    <option value="20px">20px</option>
+                    <option value="24px">24px</option>
+                    <option value="28px">28px</option>
+                    <option value="32px">32px</option>
+                </select>
+
+                <input type="color" id="textColor" title="文字颜色" value="#000000">
+            </div>
+
+            <div class="toolbar-group">
+                <button id="boldBtn" title="加粗">B</button>
+                <button id="italicBtn" title="倾斜">I</button>
+                <button id="underlineBtn" title="下划线">U</button>
+                <button id="strikethroughBtn" title="删除线">S</button>
+            </div>
+
+            <div class="toolbar-group">
+                <button id="alignLeftBtn" title="左对齐">⬅</button>
+                <button id="alignCenterBtn" title="居中">⬌</button>
+                <button id="alignRightBtn" title="右对齐">➡</button>
+            </div>
+
+            <div class="toolbar-group">
+                <button id="orderedListBtn" title="有序列表">1.</button>
+                <button id="unorderedListBtn" title="无序列表">•</button>
+                <button id="quoteBtn" title="引用">"</button>
+                <button id="hrBtn" title="水平线">─</button>
+            </div>
+
+            <div class="toolbar-group">
+                <select id="codeSelect" title="代码块">
+                    <option value="">代码</option>
+                    <option value="c">C</option>
+                    <option value="cpp">C++</option>
+                    <option value="python">Python</option>
+                    <option value="bash">Bash</option>
+                </select>
+
+                <button id="inlineCodeBtn" title="行内代码">`</button>
+            </div>
+
+            <div class="toolbar-group">
+                <button id="indentBtn" title="缩进">Tab</button>
+                <button id="imageBtn" title="粘贴图片">📷</button>
+            </div>
+
+            <div class="toolbar-group">
+                <button id="linkBtn" title="插入链接">🔗</button>
+                <button id="themeToggle" title="切换深色模式">🌓</button>
+                <button id="sidebarToggle" title="折叠侧边栏">☰</button>
+                <button id="exportBtn" title="导出Markdown">📥</button>
+                <button id="logoutBtn" title="退出登录">🚪</button>
+            </div>
+        </div>
+
+        <!-- 编辑区域 -->
+            <div class="editor-content">
+                <div id="editor" contenteditable="true" placeholder="开始输入您的Markdown内容..."></div>
+            </div>
+
+            <!-- 状态栏 -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-label">当前格式:</span>
+                    <span id="currentFormat" class="status-value">无</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">光标位置:</span>
+                    <span id="cursorPosition" class="status-value">0, 0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">选择:</span>
+                    <span id="selectedText" class="status-value">未选择</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 超链接对话框 -->
+    <div id="linkDialog" class="dialog">
+        <div class="dialog-content">
+            <h3>插入链接</h3>
+            <div class="form-group">
+                <label for="linkUrl">链接地址:</label>
+                <input type="url" id="linkUrl" placeholder="https://example.com">
+            </div>
+            <div class="form-group">
+                <label for="linkTitle">显示标题:</label>
+                <input type="text" id="linkTitle" placeholder="链接显示文字">
+            </div>
+            <div class="form-group">
+                <button id="fetchTitle" type="button">📥 获取标题</button>
+                <small>点击获取网页标题按钮自动从URL获取标题</small>
+            </div>
+            <div class="dialog-buttons">
+                <button id="cancelLink">取消</button>
+                <button id="confirmLink">插入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出对话框 -->
+    <div id="exportDialog" class="dialog">
+        <div class="dialog-content">
+            <h3>导出设置</h3>
+            <div class="form-group">
+                <label for="imagePath">图片路径:</label>
+                <input type="text" id="imagePath" value="/image" placeholder="输入图片路径，如 /image/123/222/">
+            </div>
+            <div class="form-group">
+                <small>格式说明：以 / 开头，可以包含多级目录，如 /image/123/222/</small>
+            </div>
+            <div class="dialog-buttons">
+                <button id="cancelExport">取消</button>
+                <button id="confirmExport">导出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+    <script src="/static/js/editor.js?v={{ timestamp }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script defer src="https://umami.vmss.cn/script.js" data-website-id="d919ca39-3dba-4479-98bf-699ef41b1355"></script>
+</body>
+</html>
